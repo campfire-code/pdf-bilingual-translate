@@ -11,7 +11,8 @@ import typing as T
 import gradio as gr
 import requests
 import tqdm
-from gradio_pdf import PDF
+import pymupdf
+import tempfile
 from string import Template
 import logging
 
@@ -332,6 +333,22 @@ def stop_translate_file(state: dict) -> None:
     if session_id in cancellation_event_map:
         logger.info(f"Stopping translation for session {session_id}")
         cancellation_event_map[session_id].set()
+
+
+def preview_pages(path, limit=12):
+    """把 PDF 前几页渲染成图片给预览区；不依赖外部预览组件，也不联网。"""
+    if not path or not str(path).lower().endswith(".pdf") or not os.path.exists(path):
+        return []
+    out = Path(tempfile.mkdtemp(prefix="pdf2zh-preview-"))
+    pages = []
+    with pymupdf.open(path) as doc:
+        for i, page in enumerate(doc):
+            if i >= limit:
+                break
+            f = out / f"{i + 1}.png"
+            page.get_pixmap(dpi=110).save(str(f))
+            pages.append((str(f), f"第 {i + 1} 页"))
+    return pages
 
 
 def translate_file(
@@ -875,13 +892,21 @@ with gr.Blocks(
 
         with gr.Column(scale=2):
             gr.Markdown("## 预览")
-            preview = PDF(label="文档预览", visible=True, height=2000)
+            preview = gr.Gallery(
+                label="文档预览（前 12 页）",
+                columns=1,
+                height=1400,
+                object_fit="contain",
+                show_label=True,
+                interactive=False,
+            )
+            preview_src = gr.State(None)
 
     # Event handlers
     file_input.upload(
         lambda x: x,
         inputs=file_input,
-        outputs=preview,
+        outputs=preview_src,
         js=(
             f"""
             (a,b)=>{{
@@ -895,9 +920,9 @@ with gr.Blocks(
             }}
             """
             if flag_demo
-            else ""
+            else None
         ),
-    )
+    ).then(preview_pages, inputs=preview_src, outputs=preview)
 
     state = gr.State({"session_id": None})
 
@@ -924,13 +949,15 @@ with gr.Blocks(
         ],
         outputs=[
             output_file_mono,
-            preview,
+            preview_src,
             output_file_dual,
             output_file_mono,
             output_file_dual,
             output_title,
         ],
-    ).then(lambda: None, js="()=>{grecaptcha.reset()}" if flag_demo else "")
+    ).then(preview_pages, inputs=preview_src, outputs=preview).then(
+        lambda: None, js="()=>{grecaptcha.reset()}" if flag_demo else None
+    )
 
     cancellation_btn.click(
         stop_translate_file,

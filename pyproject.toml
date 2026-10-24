@@ -31,7 +31,6 @@ dependencies = [
     "opencv-python-headless",
     "tencentcloud-sdk-python-tmt==3.1.70",  # newer releases remove TextTranslate
     "pdfminer-six==20250416",
-    "gradio_pdf>=0.0.24",  # first release supporting gradio 6
     "pikepdf",
     "peewee>=3.17.8",
     "fontTools",
