@@ -120,6 +120,113 @@ page_map = {
     "Others": None,
 }
 
+# 汉化（篝火）：下拉与单选的显示名，内部值保持上游原样，翻译逻辑不受影响
+SERVICE_LABELS = {
+    "Argos Translate": "Argos 离线翻译",
+    "Silicon": "硅基流动（SiliconCloud）",
+    "Zhipu": "智谱（Zhipu）",
+    "ModelScope": "魔搭（ModelScope）",
+    "Tencent": "腾讯云机器翻译",
+    "Azure": "Azure 翻译",
+    "AzureOpenAI": "Azure OpenAI",
+    "OpenAI-liked": "兼容 OpenAI 接口的服务",
+    "Ali Qwen-Translation": "阿里通义 Qwen-MT",
+}
+LANG_LABELS = {
+    "Simplified Chinese": "简体中文",
+    "Traditional Chinese": "繁体中文",
+    "English": "英语",
+    "French": "法语",
+    "German": "德语",
+    "Japanese": "日语",
+    "Korean": "韩语",
+    "Russian": "俄语",
+    "Spanish": "西班牙语",
+    "Italian": "意大利语",
+}
+PAGE_LABELS = {
+    "All": "全部",
+    "First": "第一页",
+    "First 5 pages": "前 5 页",
+    "First 20 pages": "前 20 页",
+    "Others": "自定义",
+}
+FILE_TYPE_CHOICES = [("文件", "File"), ("链接", "Link")]
+MODE_CHOICES = [("快速", "fast"), ("精细", "precise")]
+
+# 翻译服务设置项的中文名：先按完整名，再按后缀，前缀是服务商
+_ENV_SUFFIX = {
+    "_API_KEY": "密钥",
+    "_AUTH_KEY": "密钥",
+    "_ACCESS_TOKEN": "访问令牌",
+    "_BASE_URL": "接口地址",
+    "_API_URL": "接口地址",
+    "_ENDPOINT": "接口地址",
+    "_HOST": "服务地址",
+    "_MODEL": "模型名",
+    "_STREAM": "流式输出（true 开启，false 关闭）",
+    "_STOP_TOKENS": "停止词（空格分隔）",
+    "_MAX_TOKENS": "最大输出长度（-1 表示不限制）",
+    "_API_VERSION": "接口版本",
+    "_SECRET_ID": "密钥编号（SecretId）",
+    "_SECRET_KEY": "密钥（SecretKey）",
+    "_DOMAINS": "领域提示",
+}
+_ENV_PREFIX = {
+    "DEEPLX": "DeepLX", "DEEPL": "DeepL", "OLLAMA": "Ollama",
+    "XINFERENCE": "Xinference", "AZURE_OPENAI": "Azure OpenAI",
+    "OPENAILIKED": "兼容接口", "OPENAI": "OpenAI", "MODELSCOPE": "魔搭",
+    "ZHIPU": "智谱", "SILICON": "硅基流动", "X302AI": "302.AI",
+    "GEMINI": "Gemini", "AZURE": "Azure 翻译", "TENCENTCLOUD": "腾讯云",
+    "DIFY": "Dify", "ANYTHINGLLM": "AnythingLLM", "GROK": "Grok",
+    "GROQ": "Groq", "DEEPSEEK": "DeepSeek", "MINIMAX": "MiniMax",
+    "ALI": "通义 Qwen-MT",
+}
+
+
+def env_label_zh(key: str) -> str:
+    """把设置项名（如 OPENAI_API_KEY）转成「OpenAI 密钥」这样的中文标签。"""
+    if key in _ENV_FULL:
+        return _ENV_FULL[key]
+    up = str(key).upper()
+    for suf, zh_suf in _ENV_SUFFIX.items():
+        if up.endswith(suf):
+            head = up[: -len(suf)]
+            for pre in sorted(_ENV_PREFIX, key=len, reverse=True):
+                if head == pre:
+                    return f"{_ENV_PREFIX[pre]} {zh_suf}"
+            break
+    for pre in sorted(_ENV_PREFIX, key=len, reverse=True):
+        if up.startswith(pre + "_"):
+            return f"{_ENV_PREFIX[pre]} {up[len(pre) + 1:]}"
+    return str(key)
+
+
+# 进度条文字：未收录的阶段名统一显示「处理中」，避免出现英文
+PROGRESS_LABELS = {
+    "Translate paragraphs": "翻译段落",
+    "Typeset pages": "排版页面",
+    "Translate Paragraphs": "翻译段落",
+    "Typesetting": "排版页面",
+    "Parse PDF and Create Intermediate Representation": "解析 PDF",
+    "DetectScannedFile": "检测是否为扫描件",
+    "Parse Page Layout": "识别页面版面",
+    "Parse Table": "识别表格",
+    "Parse Paragraphs": "识别段落",
+    "Parse Formulas and Styles": "识别公式与样式",
+    "Remove Char Descent": "调整字符基线",
+    "Add Fonts": "添加字体",
+    "Generate drawing instructions": "生成绘制指令",
+    "Add Debug Information": "添加调试信息",
+    "Subset font": "字体子集化",
+    "Save PDF": "保存 PDF",
+}
+_ENV_FULL = {
+    "AnythingLLM_URL": "AnythingLLM 接口地址",
+    "AnythingLLM_APIKEY": "AnythingLLM 密钥",
+}
+
+
 # Check if this is a public demo, which has resource limits
 flag_demo = False
 
@@ -152,6 +259,15 @@ if isinstance(enabled_services, list):
     enabled_services = default_services + enabled_services
 else:
     enabled_services = list(service_map.keys())
+
+
+# 下拉选项：(中文显示名, 内部值)
+service_choices = [(SERVICE_LABELS.get(k, k), k) for k in enabled_services]
+lang_choices = [(LANG_LABELS.get(k, k), k) for k in lang_map]
+
+
+def page_choices():
+    return [(PAGE_LABELS.get(k, k), k) for k in page_map]
 
 
 # Configure about Gradio show keys
@@ -196,7 +312,7 @@ def download_with_limit(url: str, save_path: str, size_limit: int) -> str:
             for chunk in response.iter_content(chunk_size=chunk_size):
                 total_size += len(chunk)
                 if size_limit and total_size > size_limit:
-                    raise gr.Error("Exceeds file size limit")
+                    raise gr.Error("文件超过大小限制")
                 file.write(chunk)
     return save_path / filename
 
@@ -270,20 +386,20 @@ def translate_file(
     cancellation_event_map[session_id] = asyncio.Event()
     # Translate PDF content using selected service.
     if flag_demo and not verify_recaptcha(recaptcha_response):
-        raise gr.Error("reCAPTCHA fail")
+        raise gr.Error("人机验证未通过")
 
-    progress(0, desc="Starting translation...")
+    progress(0, desc="开始翻译……")
 
     output = Path("pdf2zh_files")
     output.mkdir(parents=True, exist_ok=True)
 
     if file_type == "File":
         if not file_input:
-            raise gr.Error("No input")
+            raise gr.Error("请先选择 PDF 文件或填写文件链接")
         file_path = shutil.copy(file_input, output)
     else:
         if not link_input:
-            raise gr.Error("No input")
+            raise gr.Error("请先选择 PDF 文件或填写文件链接")
         file_path = download_with_limit(
             link_input,
             output,
@@ -323,10 +439,10 @@ def translate_file(
     print(f"Files before translation: {os.listdir(output)}")
 
     def progress_bar(t: tqdm.tqdm):
-        desc = getattr(t, "desc", "Translating...")
+        desc = getattr(t, "desc", "")
         if desc == "":
-            desc = "Translating..."
-        progress(t.n / t.total, desc=desc)
+            desc = "翻译中"
+        progress(t.n / t.total, desc=PROGRESS_LABELS.get(desc, "处理中"))
 
     try:
         threads = int(threads)
@@ -378,13 +494,13 @@ def translate_file(
         )
     except CancelledError:
         del cancellation_event_map[session_id]
-        raise gr.Error("Translation cancelled")
+        raise gr.Error("翻译已取消")
     print(f"Files after translation: {os.listdir(output)}")
 
     if not file_mono.exists() or not file_dual.exists():
-        raise gr.Error("No output")
+        raise gr.Error("没有生成译文文件，请检查翻译服务设置后重试")
 
-    progress(1.0, desc="Translation complete!")
+    progress(1.0, desc="翻译完成")
 
     return (
         str(file_mono),
@@ -554,12 +670,12 @@ demo_recaptcha = """
     """
 
 tech_details_string = f"""
-                    <summary>Technical details</summary>
-                    - GitHub: <a href="https://github.com/Byaidu/PDFMathTranslate">Byaidu/PDFMathTranslate</a><br>
+                    <summary>技术信息</summary>
+                    - 开源地址: <a href="https://github.com/Byaidu/PDFMathTranslate">Byaidu/PDFMathTranslate</a><br>
                     - BabelDOC: <a href="https://github.com/funstory-ai/BabelDOC">funstory-ai/BabelDOC</a><br>
-                    - GUI by: <a href="https://github.com/reycn">Rongxin</a><br>
-                    - pdf2zh Version: {__version__} <br>
-                    - BabelDOC Version: {babeldoc_version}
+                    - 界面作者: <a href="https://github.com/reycn">Rongxin</a><br>
+                    - pdf2zh 版本: {__version__} <br>
+                    - BabelDOC 版本: {babeldoc_version}
                 """
 cancellation_event_map = {}
 
@@ -575,40 +691,42 @@ launch_style_kwargs = {
 
 # The following code creates the GUI
 with gr.Blocks(
-    title="PDFMathTranslate - PDF Translation with preserved formats",
+    title="PDF 双语翻译（保版式）",
 ) as demo:
     gr.Markdown(
-        "# [PDFMathTranslate @ GitHub](https://github.com/Byaidu/PDFMathTranslate)"
+        "# PDF 双语翻译（保版式）\n基于开源项目 [PDFMathTranslate](https://github.com/Byaidu/PDFMathTranslate)，翻译时保留公式、图表和排版。"
     )
 
     with gr.Row():
         with gr.Column(scale=1):
-            gr.Markdown("## File | < 5 MB" if flag_demo else "## File")
+            gr.Markdown("## 文件 | 不超过 5 MB" if flag_demo else "## 文件")
             file_type = gr.Radio(
-                choices=["File", "Link"],
-                label="Type",
+                choices=FILE_TYPE_CHOICES,
+                label="来源",
                 value="File",
             )
             file_input = gr.File(
-                label="File",
+                label="PDF 文件",
                 file_count="single",
                 file_types=[".pdf", ".doc", ".docx"],
                 type="filepath",
                 elem_classes=["input-file"],
             )
             link_input = gr.Textbox(
-                label="Link",
+                label="文件链接",
                 visible=False,
                 interactive=True,
             )
-            gr.Markdown("## Option")
+            gr.Markdown("## 翻译设置")
             service = gr.Dropdown(
-                label="Service",
-                choices=enabled_services,
+                label="翻译服务",
+                choices=service_choices,
                 value=enabled_services[0],
             )
             envs = []
-            for i in range(3):
+            # 篝火修正：设置项输入框数量取各服务的最大值（OpenAI 等有 6 项，原来只有 3 个会报错）
+            max_envs = max(len(t.envs) for t in service_map.values())
+            for i in range(max_envs):
                 envs.append(
                     gr.Textbox(
                         visible=False,
@@ -617,49 +735,49 @@ with gr.Blocks(
                 )
             with gr.Row():
                 lang_from = gr.Dropdown(
-                    label="Translate from",
-                    choices=lang_map.keys(),
+                    label="原文语言",
+                    choices=lang_choices,
                     value=ConfigManager.get("PDF2ZH_LANG_FROM", "English"),
                 )
                 lang_to = gr.Dropdown(
-                    label="Translate to",
-                    choices=lang_map.keys(),
+                    label="译文语言",
+                    choices=lang_choices,
                     value=ConfigManager.get("PDF2ZH_LANG_TO", "Simplified Chinese"),
                 )
             page_range = gr.Radio(
-                choices=page_map.keys(),
-                label="Pages",
+                choices=page_choices(),
+                label="翻译页码",
                 value=list(page_map.keys())[0],
             )
 
             page_input = gr.Textbox(
-                label="Page range",
+                label="自定义页码（如 1-3,5）",
                 visible=False,
                 interactive=True,
             )
 
-            with gr.Accordion("Open for More Experimental Options!", open=False):
-                gr.Markdown("#### Experimental")
+            with gr.Accordion("更多高级选项", open=False):
+                gr.Markdown("#### 高级选项")
                 threads = gr.Textbox(
-                    label="number of threads", interactive=True, value="4"
+                    label="并发线程数", interactive=True, value="4"
                 )
                 skip_subset_fonts = gr.Checkbox(
-                    label="Skip font subsetting", interactive=True, value=False
+                    label="跳过字体子集化", interactive=True, value=False
                 )
                 ignore_cache = gr.Checkbox(
-                    label="Ignore cache", interactive=True, value=False
+                    label="忽略缓存", interactive=True, value=False
                 )
                 vfont = gr.Textbox(
-                    label="Custom formula font regex (vfont)",
+                    label="自定义公式字体（正则表达式）",
                     interactive=True,
                     value=ConfigManager.get("PDF2ZH_VFONT", ""),
                 )
                 prompt = gr.Textbox(
-                    label="Custom Prompt for llm", interactive=True, visible=False
+                    label="自定义提示词（大模型）", interactive=True, visible=False
                 )
                 mode_choice = gr.Dropdown(
-                    label="Translation Mode",
-                    choices=["fast", "precise"],
+                    label="翻译模式",
+                    choices=MODE_CHOICES,
                     value="fast",
                     interactive=True,
                 )
@@ -668,7 +786,7 @@ with gr.Blocks(
             def on_select_service(service, evt: gr.EventData):
                 translator = service_map[service]
                 _envs = []
-                for i in range(4):
+                for i in range(max_envs + 1):
                     _envs.append(gr.update(visible=False, value=""))
                 for i, env in enumerate(translator.envs.items()):
                     label = env[0]
@@ -688,7 +806,7 @@ with gr.Blocks(
                             value = "***"  # We use "***" Present Real API_KEY
                     _envs[i] = gr.update(
                         visible=visible,
-                        label=label,
+                        label=env_label_zh(label),
                         value=value,
                     )
                 _envs[-1] = gr.update(visible=translator.CustomPrompt)
@@ -710,19 +828,19 @@ with gr.Blocks(
                 ConfigManager.set("PDF2ZH_VFONT", value)
                 return value
 
-            output_title = gr.Markdown("## Translated", visible=False)
+            output_title = gr.Markdown("## 翻译结果", visible=False)
             output_file_mono = gr.File(
-                label="Download Translation (Mono)", visible=False
+                label="下载译文版（仅译文）", visible=False
             )
             output_file_dual = gr.File(
-                label="Download Translation (Dual)", visible=False
+                label="下载双语对照版", visible=False
             )
             recaptcha_response = gr.Textbox(
-                label="reCAPTCHA Response", elem_id="verify", visible=False
+                label="人机验证结果", elem_id="verify", visible=False
             )
             recaptcha_box = gr.HTML('<div id="recaptcha-box"></div>')
-            translate_btn = gr.Button("Translate", variant="primary")
-            cancellation_btn = gr.Button("Cancel", variant="secondary")
+            translate_btn = gr.Button("开始翻译", variant="primary")
+            cancellation_btn = gr.Button("取消", variant="secondary")
             tech_details_tog = gr.Markdown(
                 tech_details_string,
                 elem_classes=["secondary-text"],
@@ -756,8 +874,8 @@ with gr.Blocks(
             )
 
         with gr.Column(scale=2):
-            gr.Markdown("## Preview")
-            preview = PDF(label="Document Preview", visible=True, height=2000)
+            gr.Markdown("## 预览")
+            preview = PDF(label="文档预览", visible=True, height=2000)
 
     # Event handlers
     file_input.upload(
@@ -839,14 +957,14 @@ def parse_user_passwd(file_path: str) -> tuple:
             with open(file_path[1], "r", encoding="utf-8") as file:
                 content = file.read()
         except FileNotFoundError:
-            print(f"Error: File '{file_path[1]}' not found.")
+            print(f"出错：找不到文件 {file_path[1]}")
     try:
         with open(file_path[0], "r", encoding="utf-8") as file:
             tuple_list = [
                 tuple(line.strip().split(",")) for line in file if line.strip()
             ]
     except FileNotFoundError:
-        print(f"Error: File '{file_path[0]}' not found.")
+        print(f"出错：找不到文件 {file_path[0]}")
     return tuple_list, content
 
 
@@ -911,8 +1029,8 @@ def setup_gui(
             return
         except Exception:
             print(
-                f"Error launching GUI using {addr}.\n"
-                "This may be caused by global mode of proxy software."
+                f"使用 {addr} 启动界面失败。\n"
+                "可能是代理软件开启了全局模式，请关闭后重试。"
             )
 
     # Last resort: let Gradio create a share link

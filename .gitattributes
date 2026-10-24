@@ -1,0 +1,5 @@
+# 篝火：发布包（git archive）不带英文 / 多语言说明和上游英文界面图
+docs/README_*.md export-ignore
+docs/images export-ignore
+docs/screenshot.html export-ignore
+docs/screenshot.png export-ignore

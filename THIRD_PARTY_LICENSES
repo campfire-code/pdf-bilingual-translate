@@ -1,0 +1,13 @@
+第三方许可证说明
+
+本工具是 PDFMathTranslate 的篝火修改版（汉化界面 + 一键启动包），按其原协议 GNU AGPL-3.0 再分发，协议全文见 LICENSE。
+
+主要组成与协议（以各项目官方声明为准）：
+
+- PDFMathTranslate（Byaidu）：AGPL-3.0，本仓库的上游，https://github.com/PDFMathTranslate/PDFMathTranslate
+- BabelDOC（funstory-ai）：AGPL-3.0，版面识别与排版引擎，https://github.com/funstory-ai/BabelDOC
+- PyMuPDF：AGPL-3.0（另有商业许可）
+- Gradio：Apache-2.0，网页界面框架
+- ONNX Runtime：MIT；OpenCV：Apache-2.0
+
+其余依赖见 pyproject.toml，各自的许可证随安装包附带在 Python 环境的 dist-info 目录中。

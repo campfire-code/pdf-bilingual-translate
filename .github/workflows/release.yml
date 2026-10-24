@@ -1,4 +1,4 @@
-# 篝火：打 v*-campfire.* 标签时转发布上游官方安装包（流程定义在 campfire-code/toolkit-hub）
+# 篝火：打 v*-campfire.* 标签时打包启动脚本包（流程定义在 campfire-code/toolkit-hub）
 name: release
 on:
   push:
@@ -7,6 +7,4 @@ permissions:
   contents: write
 jobs:
   release:
-    uses: campfire-code/toolkit-hub/.github/workflows/mirror-release.yml@v1
-    with:
-      exclude: '\.(sig|json)$|^pdf2zh-v[0-9.]+-win64\.zip$'
+    uses: campfire-code/toolkit-hub/.github/workflows/launcher-release.yml@v1
