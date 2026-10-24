@@ -1,3 +1,80 @@
+# PDF 双语翻译（保版式，PDFMathTranslate）
+
+> 篝火出品 · 收录于篝火 App 应用区 · 基于开源项目 [PDFMathTranslate/PDFMathTranslate](https://github.com/PDFMathTranslate/PDFMathTranslate)（**AGPL-3.0**）
+
+把论文、说明书等 PDF 翻译成另一种语言，**公式、图表和排版保持原样**，同时生成纯译文版和中英对照版。
+
+## 下载
+
+到 [Releases](https://github.com/campfire-code/pdf-bilingual-translate/releases/latest) 下载：
+
+| 电脑 | 文件 |
+|---|---|
+| Windows 10 / 11（64 位） | `pdf-bilingual-translate_版本号_pdf2zh-v1.9.11-with-assets-win64.zip`，约 520 MB |
+
+- 这是上游官方的「带资源版」（已内置字体、版面识别模型等），解压即用，不必再联网下载模型。上游另有一个不带资源的小包，运行时要在线下载模型、网络不好容易失败，所以这里只转发布带资源版。
+- 安装包来自上游官方发布，篝火没有修改，附 `SHA256SUMS.txt` 可核对。
+- 上游只提供 Windows 免安装包，**没有 macOS / Linux 安装包**，见下面「Mac / Linux」。
+
+## 怎么用（Windows）
+
+1. 解压 zip，双击里面的 `pdf2zh.exe` 运行（上游说明）。
+2. 如果下载后打不开，先安装 [vc_redist.x64.exe](https://aka.ms/vs/17/release/vc_redist.x64.exe) 再试（上游说明）。
+3. 选好 PDF、翻译服务和目标语言后开始翻译，译文会生成在输出位置，包括译文版（`-mono.pdf`）和双语对照版（`-dual.pdf`）。
+
+**说明**
+- 软件界面和上游文档是英文。
+- 默认的翻译服务是 Google。
+
+## Mac / Linux
+
+上游文档给出的安装方式（需要 Python 3.11 ~ 3.12）：
+
+```bash
+# 方式一：uv
+pip install uv
+uv tool install --python 3.12 pdf2zh
+
+# 方式二：pip
+pip install pdf2zh
+```
+
+- 命令行翻译：`pdf2zh document.pdf`，在当前目录生成译文版和双语对照版。
+- 图形界面：`pdf2zh -i`，浏览器打开 `http://localhost:7860/`（没自动打开就手动访问），把 PDF 拖进去点 `Translate`。
+- 上游还提供 Docker：`docker run -d -p 7860:7860 byaidu/pdf2zh`，浏览器访问 `http://localhost:7860/`。
+- 在国内网络下载版面识别模型失败时，参考上游 README 的 “Solutions for network issues in installation” 一节。
+
+## 翻译服务（需要你自己选、自己配）
+
+以下均来自上游文档 `docs/ADVANCED.md` 的服务表，PDF 里的文字会发送给你选的服务，请自行评估保密要求。
+
+- **表里无需密钥的**：Google（默认）、Bing。上游没有写明它们的额度或长期可用性，我们没有核实，正式使用前先试一份文件。
+- **在线服务，需要自己的密钥**：OpenAI、302.AI、DeepL、Azure OpenAI、Azure（翻译）、智谱 Zhipu、魔搭 ModelScope、硅基流动 SiliconCloud、Gemini、腾讯云机器翻译、Grok、Groq、DeepSeek、MiniMax、阿里通义 Qwen-MT，以及任何兼容 OpenAI 接口的服务（用 `openailiked`，自己填地址、密钥、模型名）。密钥通过环境变量传入，例如 `OPENAI_API_KEY`。
+- **需要自己的服务地址**：Ollama（本机，默认 `http://127.0.0.1:11434`）、Xinference、DeepLX、Dify、AnythingLLM；Argos Translate 的表项没有写环境变量。
+- 用 `-s 服务名` 指定服务，如 `pdf2zh example.pdf -s openai:gpt-4o-mini`。
+- 上游还列出了几个在线体验站（pdf2zh.com、沉浸式翻译 BabelDOC 等），免安装，但属于第三方服务，与篝火无关。
+
+## 验收用例
+
+| 操作 | 应得到 |
+|---|---|
+| Windows 解压后双击 `pdf2zh.exe`，选一份含公式的英文 PDF，服务选 Google，目标语言选中文，开始翻译 | 生成译文版和双语对照版 PDF，公式、图表位置与原文一致 |
+| 换成自己的 OpenAI 兼容接口（填地址、密钥、模型名）再翻译一次 | 同样生成译文 PDF |
+
+## 和上游的区别
+
+- 仅新增中文说明与篝火发布流程（`tool.json`、`.github/workflows/release.yml`），软件代码与上游一致。
+- 移除了上游全部工作流（构建、测试、发布等），它们依赖上游的密钥。
+- 本仓库对应上游 v1.9.11。上游 2.0 版本已迁到新仓库 [PDFMathTranslate-next](https://github.com/PDFMathTranslate/PDFMathTranslate-next)，本仓库不包含。
+
+## 归属与许可证
+
+本仓库由**篝火**整理发布，是篝火 App 应用区收录的开源工具之一。软件全部功能与版权归 [PDFMathTranslate](https://github.com/PDFMathTranslate/PDFMathTranslate) 原作者所有，按 **GNU AGPL-3.0** 许可证再分发，完整协议见仓库内 `LICENSE`，对应源码即本仓库。全部工具目录见 [toolkit-hub](https://github.com/campfire-code/toolkit-hub)。
+
+---
+
+以下为上游原始说明：
+
 <div align="center">
 	<a href="https://go.warp.dev/PDFMathTranslate" target="_blank">
 		<sup>Special thanks to:</sup>

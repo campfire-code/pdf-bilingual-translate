@@ -1,0 +1,10 @@
+{
+  "id": "o22",
+  "slug": "pdf-bilingual-translate",
+  "name": "PDF 双语翻译（保版式）",
+  "version": "1.9.11-campfire.1",
+  "repo": "campfire-code/pdf-bilingual-translate",
+  "license": "AGPL-3.0",
+  "delivery": "mirror",
+  "upstream": { "repo": "PDFMathTranslate/PDFMathTranslate", "license": "AGPL-3.0", "tag": "v1.9.11" }
+}
